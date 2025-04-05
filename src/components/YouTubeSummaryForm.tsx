@@ -50,13 +50,16 @@ export function YouTubeSummaryForm() {
       }
 
       // 자막 가져오기
-      const transcriptResponse = await fetch("/api/transcript", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ videoId }),
-      });
+      const transcriptResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/transcript`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ videoId }),
+        }
+      );
 
       if (!transcriptResponse.ok) {
         const data = await transcriptResponse.json();
@@ -79,13 +82,16 @@ export function YouTubeSummaryForm() {
       const { transcript } = await transcriptResponse.json();
 
       // 요약 및 비디오 정보 가져오기
-      const summaryResponse = await fetch("/api/summary", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url, transcript }),
-      });
+      const summaryResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/summary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url, transcript }),
+        }
+      );
 
       if (!summaryResponse.ok) {
         const data = await summaryResponse.json();

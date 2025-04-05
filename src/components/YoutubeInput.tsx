@@ -23,13 +23,16 @@ export function YoutubeInput() {
     setLoadingState("video-info");
 
     try {
-      const response = await fetch("/api/summary", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/summary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
