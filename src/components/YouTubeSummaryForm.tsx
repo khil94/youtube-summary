@@ -3,11 +3,18 @@
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { extractVideoId } from "@/lib/youtube";
 import { useState } from "react";
+import { YoutubeTranscript } from "youtube-transcript";
 import CollapsibleSection from "./CollapsibleSection";
 import HashTags from "./HashTags";
 import RelatedVideos from "./RelatedVideos";
 import ShareButton from "./ShareButton";
 import Timeline from "./Timeline";
+
+interface TranscriptItem {
+  text: string;
+  offset: number;
+  duration: number;
+}
 
 interface VideoDetails {
   videoId: string;
@@ -41,10 +48,7 @@ export function YouTubeSummaryForm() {
     setVideoDetails(null);
 
     try {
-      console.log("Form submitted with URL:", url);
       const videoId = extractVideoId(url);
-      console.log("Extracted videoId:", videoId);
-
       if (!videoId) {
         throw new Error(
           "올바른 YouTube URL이 아닙니다. YouTube 영상의 전체 URL을 입력해주세요.\n" +
@@ -52,41 +56,56 @@ export function YouTubeSummaryForm() {
         );
       }
 
-      // 자막 가져오기
-      console.log("Fetching transcript...");
-      const transcriptResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/transcript`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ videoId }),
-        }
-      );
+      // 클라이언트에서 직접 자막 가져오기
+      console.log("Fetching transcript for videoId:", videoId);
+      const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+      console.log("Transcript items fetched:", transcriptItems.length);
 
-      console.log("Transcript response status:", transcriptResponse.status);
-      const transcriptData = await transcriptResponse.json();
-      console.log("Transcript response data:", transcriptData);
+      // 자막을 시간 정보와 함께 처리
+      const segments: { start: number; end: number; text: string }[] = [];
+      let currentSegment = {
+        start: transcriptItems[0]?.offset || 0,
+        end: 0,
+        text: "",
+      };
 
-      if (!transcriptResponse.ok) {
-        if (transcriptData.error?.includes("No captions")) {
-          throw new Error(
-            "이 영상에는 자막이 없습니다. 자막이 있는 영상을 선택해주세요."
-          );
-        }
-        if (transcriptData.error?.includes("Transcript is disabled")) {
-          throw new Error(
-            "이 영상은 자막이 비활성화되어 있습니다. 자막이 활성화된 다른 영상을 선택해주세요."
-          );
-        }
-        throw new Error(
-          transcriptData.error ||
-            "자막을 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
-        );
-      }
+      transcriptItems.forEach((item: TranscriptItem, index: number) => {
+        const currentText = item.text.trim();
+        if (currentText) {
+          if (currentSegment.text) {
+            currentSegment.text += " " + currentText;
+          } else {
+            currentSegment.text = currentText;
+          }
 
-      const { transcript } = transcriptData;
+          if (
+            index === transcriptItems.length - 1 ||
+            currentSegment.text.length > 200
+          ) {
+            currentSegment.end = item.offset + item.duration;
+            segments.push({ ...currentSegment });
+            if (index < transcriptItems.length - 1) {
+              currentSegment = {
+                start: transcriptItems[index + 1].offset,
+                end: 0,
+                text: "",
+              };
+            }
+          }
+        }
+      });
+
+      const transcript = segments
+        .map((segment) => {
+          const startTime = new Date(segment.start * 1000)
+            .toISOString()
+            .substr(11, 8);
+          const endTime = new Date(segment.end * 1000)
+            .toISOString()
+            .substr(11, 8);
+          return `[${startTime} ~ ${endTime}] ${segment.text}`;
+        })
+        .join("\n\n");
 
       // 요약 및 비디오 정보 가져오기
       const summaryResponse = await fetch(
@@ -124,6 +143,16 @@ export function YouTubeSummaryForm() {
         setError(
           "🕒 현재 너무 많은 요청이 들어와 API 할당량을 초과했습니다.\n" +
             "잠시 후 (약 1분 뒤) 다시 시도해주세요."
+        );
+      }
+      // 자막 관련 에러 처리
+      else if (errorMessage.toLowerCase().includes("transcript is disabled")) {
+        setError(
+          "이 영상은 자막이 비활성화되어 있습니다. 다른 영상을 선택해주세요."
+        );
+      } else if (errorMessage.toLowerCase().includes("no captions")) {
+        setError(
+          "이 영상에는 자막이 없습니다. 자막이 있는 다른 영상을 선택해주세요."
         );
       }
       // API 키 관련 에러 처리
