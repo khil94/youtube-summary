@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
     const captionTracks = JSON.parse(`[${match[1]}]`);
     const koreanTrack = captionTracks.find(
-      (track: any) => track.languageCode === "ko"
+      (track: { languageCode: string }) => track.languageCode === "ko"
     );
     const defaultTrack = captionTracks[0];
     const selectedTrack = koreanTrack || defaultTrack;
