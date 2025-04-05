@@ -85,57 +85,14 @@ export async function getTranscript(videoId: string): Promise<string | null> {
         body: JSON.stringify({ videoId }),
       }
     );
+
     const data = await response.json();
 
     if (!response.ok) {
       throw new Error(data.error || "자막을 가져오는데 실패했습니다.");
     }
 
-    // 자막을 시간 정보와 함께 처리
-    const segments: { start: number; end: number; text: string }[] = [];
-    let currentSegment = {
-      start: data.transcript[0]?.offset || 0,
-      end: 0,
-      text: "",
-    };
-
-    data.transcript.forEach((item: TranscriptItem, index: number) => {
-      const currentText = item.text.trim();
-      if (currentText) {
-        if (currentSegment.text) {
-          currentSegment.text += " " + currentText;
-        } else {
-          currentSegment.text = currentText;
-        }
-
-        // 다음 자막이 없거나, 현재 세그먼트가 충분히 길면 새로운 세그먼트 시작
-        if (
-          index === data.transcript.length - 1 ||
-          currentSegment.text.length > 200
-        ) {
-          currentSegment.end = item.offset + item.duration;
-          segments.push({ ...currentSegment });
-          if (index < data.transcript.length - 1) {
-            currentSegment = {
-              start: data.transcript[index + 1].offset,
-              end: 0,
-              text: "",
-            };
-          }
-        }
-      }
-    });
-
-    // 시간 정보를 포함한 텍스트 생성
-    const formattedTranscript = segments
-      .map((segment) => {
-        const startTime = formatTime(segment.start);
-        const endTime = formatTime(segment.end);
-        return `[${startTime} ~ ${endTime}] ${segment.text}`;
-      })
-      .join("\n\n");
-
-    return formattedTranscript;
+    return data.transcript;
   } catch (error) {
     console.error("[YouTube Transcript Error]:", {
       error,
