@@ -41,7 +41,10 @@ export function YouTubeSummaryForm() {
     setVideoDetails(null);
 
     try {
+      console.log("Form submitted with URL:", url);
       const videoId = extractVideoId(url);
+      console.log("Extracted videoId:", videoId);
+
       if (!videoId) {
         throw new Error(
           "올바른 YouTube URL이 아닙니다. YouTube 영상의 전체 URL을 입력해주세요.\n" +
@@ -50,6 +53,7 @@ export function YouTubeSummaryForm() {
       }
 
       // 자막 가져오기
+      console.log("Fetching transcript...");
       const transcriptResponse = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/transcript`,
         {
@@ -60,6 +64,10 @@ export function YouTubeSummaryForm() {
           body: JSON.stringify({ videoId }),
         }
       );
+
+      console.log("Transcript response status:", transcriptResponse.status);
+      const transcriptData = await transcriptResponse.json();
+      console.log("Transcript response data:", transcriptData);
 
       if (!transcriptResponse.ok) {
         const data = await transcriptResponse.json();
@@ -79,7 +87,7 @@ export function YouTubeSummaryForm() {
         );
       }
 
-      const { transcript } = await transcriptResponse.json();
+      const { transcript } = transcriptData;
 
       // 요약 및 비디오 정보 가져오기
       const summaryResponse = await fetch(

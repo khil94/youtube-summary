@@ -75,12 +75,6 @@ export function extractVideoId(url: string): string | null {
 
 export async function getTranscript(videoId: string): Promise<string | null> {
   try {
-    console.log("Fetching transcript for videoId:", videoId);
-    console.log(
-      "Request URL:",
-      `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/transcript`
-    );
-
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/transcript`,
       {
@@ -93,7 +87,6 @@ export async function getTranscript(videoId: string): Promise<string | null> {
     );
 
     const data = await response.json();
-    console.log("Transcript API Response:", data);
 
     if (!response.ok) {
       throw new Error(data.error || "자막을 가져오는데 실패했습니다.");
