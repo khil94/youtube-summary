@@ -44,11 +44,11 @@ interface VideoDetails {
   thumbnailUrl: string;
 }
 
-interface TranscriptItem {
-  text: string;
-  duration: number;
-  offset: number;
-}
+// interface TranscriptItem {
+//   text: string;
+//   duration: number;
+//   offset: number;
+// }
 
 if (!process.env.NEXT_PUBLIC_YOUTUBE_API_KEY) {
   throw new Error(
@@ -118,15 +118,15 @@ export async function getTranscript(videoId: string): Promise<string | null> {
 }
 
 // 시간(초)을 HH:MM:SS 형식으로 변환
-function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
+// function formatTime(seconds: number): string {
+//   const hours = Math.floor(seconds / 3600);
+//   const minutes = Math.floor((seconds % 3600) / 60);
+//   const secs = Math.floor(seconds % 60);
 
-  return [hours, minutes, secs]
-    .map((v) => v.toString().padStart(2, "0"))
-    .join(":");
-}
+//   return [hours, minutes, secs]
+//     .map((v) => v.toString().padStart(2, "0"))
+//     .join(":");
+// }
 
 export async function findRelatedVideos(
   keywords: string[],
