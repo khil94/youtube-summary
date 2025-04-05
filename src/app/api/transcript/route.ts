@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { YoutubeTranscript } from "youtube-transcript";
 
+interface TranscriptItem {
+  text: string;
+  offset: number;
+  duration: number;
+}
+
 export async function POST(req: Request) {
   try {
     const { videoId } = await req.json();
@@ -23,7 +29,7 @@ export async function POST(req: Request) {
         text: "",
       };
 
-      transcriptItems.forEach((item, index) => {
+      transcriptItems.forEach((item: TranscriptItem, index: number) => {
         const currentText = item.text.trim();
         if (currentText) {
           if (currentSegment.text) {
