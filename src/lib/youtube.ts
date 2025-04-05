@@ -1,11 +1,3 @@
-import { YoutubeTranscript } from "youtube-transcript";
-
-interface VideoTranscript {
-  text: string;
-  duration: number;
-  offset: number;
-}
-
 interface RelatedVideo {
   id: string;
   title: string;
@@ -52,6 +44,12 @@ interface VideoDetails {
   thumbnailUrl: string;
 }
 
+interface TranscriptItem {
+  text: string;
+  duration: number;
+  offset: number;
+}
+
 if (!process.env.NEXT_PUBLIC_YOUTUBE_API_KEY) {
   throw new Error(
     "YouTube API 키가 설정되지 않았습니다. .env.local 파일에 NEXT_PUBLIC_YOUTUBE_API_KEY를 추가해주세요."
@@ -77,21 +75,22 @@ export function extractVideoId(url: string): string | null {
 
 export async function getTranscript(videoId: string): Promise<string | null> {
   try {
-    // 한국어 자막 우선 시도
-    const transcript: VideoTranscript[] =
-      await YoutubeTranscript.fetchTranscript(videoId, {
-        lang: "ko",
-      });
+    const response = await fetch(`/api/captions?videoId=${videoId}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "자막을 가져오는데 실패했습니다.");
+    }
 
     // 자막을 시간 정보와 함께 처리
     const segments: { start: number; end: number; text: string }[] = [];
     let currentSegment = {
-      start: transcript[0]?.offset || 0,
+      start: data.transcript[0]?.offset || 0,
       end: 0,
       text: "",
     };
 
-    transcript.forEach((item, index) => {
+    data.transcript.forEach((item: TranscriptItem, index: number) => {
       const currentText = item.text.trim();
       if (currentText) {
         if (currentSegment.text) {
@@ -102,14 +101,14 @@ export async function getTranscript(videoId: string): Promise<string | null> {
 
         // 다음 자막이 없거나, 현재 세그먼트가 충분히 길면 새로운 세그먼트 시작
         if (
-          index === transcript.length - 1 ||
+          index === data.transcript.length - 1 ||
           currentSegment.text.length > 200
         ) {
           currentSegment.end = item.offset + item.duration;
           segments.push({ ...currentSegment });
-          if (index < transcript.length - 1) {
+          if (index < data.transcript.length - 1) {
             currentSegment = {
-              start: transcript[index + 1].offset,
+              start: data.transcript[index + 1].offset,
               end: 0,
               text: "",
             };
@@ -129,32 +128,19 @@ export async function getTranscript(videoId: string): Promise<string | null> {
 
     return formattedTranscript;
   } catch (error) {
-    console.error("[YoutubeTranscript] 🚨 Error details:", {
+    console.error("[YouTube Transcript Error]:", {
       error,
       message: error instanceof Error ? error.message : "Unknown error",
       videoId,
       timestamp: new Date().toISOString(),
     });
 
-    // 더 자세한 에러 메시지 제공
     if (error instanceof Error) {
-      if (error.message.includes("Transcript is disabled")) {
-        throw new Error(
-          "이 영상은 자막이 비활성화되어 있습니다. 다음 방법을 시도해보세요:\n" +
-            "1. 영상 설정(⚙️)에서 자막 활성화\n" +
-            "2. 자동 생성 자막 사용\n" +
-            "3. 다른 영상 선택"
-        );
-      }
-      if (error.message.includes("No captions")) {
-        throw new Error(
-          "이 영상에는 자막이 없습니다. 다음 방법을 시도해보세요:\n" +
-            "1. 자동 생성 자막 사용\n" +
-            "2. 자막이 있는 다른 영상 선택"
-        );
-      }
+      throw error;
     }
-    throw error;
+    throw new Error(
+      "자막을 가져오는데 실패했습니다. 잠시 후 다시 시도해주세요."
+    );
   }
 }
 
