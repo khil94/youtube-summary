@@ -70,19 +70,18 @@ export function YouTubeSummaryForm() {
       console.log("Transcript response data:", transcriptData);
 
       if (!transcriptResponse.ok) {
-        const data = await transcriptResponse.json();
-        if (data.error?.includes("No captions")) {
+        if (transcriptData.error?.includes("No captions")) {
           throw new Error(
             "이 영상에는 자막이 없습니다. 자막이 있는 영상을 선택해주세요."
           );
         }
-        if (data.error?.includes("Transcript is disabled")) {
+        if (transcriptData.error?.includes("Transcript is disabled")) {
           throw new Error(
             "이 영상은 자막이 비활성화되어 있습니다. 자막이 활성화된 다른 영상을 선택해주세요."
           );
         }
         throw new Error(
-          data.error ||
+          transcriptData.error ||
             "자막을 가져오는 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
         );
       }
