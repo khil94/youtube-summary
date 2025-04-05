@@ -76,9 +76,14 @@ export function extractVideoId(url: string): string | null {
 export async function getTranscript(videoId: string): Promise<string | null> {
   try {
     const response = await fetch(
-      `${
-        process.env.NEXT_PUBLIC_BASE_URL || ""
-      }/api/captions?videoId=${videoId}`
+      `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/transcript`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ videoId }),
+      }
     );
     const data = await response.json();
 
