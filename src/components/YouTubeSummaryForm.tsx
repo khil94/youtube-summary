@@ -3,7 +3,6 @@
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { extractVideoId } from "@/lib/youtube";
 import { useState } from "react";
-import { YoutubeTranscript } from "youtube-transcript";
 import CollapsibleSection from "./CollapsibleSection";
 import HashTags from "./HashTags";
 import RelatedVideos from "./RelatedVideos";
@@ -56,10 +55,21 @@ export function YouTubeSummaryForm() {
         );
       }
 
-      // 클라이언트에서 직접 자막 가져오기
-      console.log("Fetching transcript for videoId:", videoId);
-      const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
-      console.log("Transcript items fetched:", transcriptItems.length);
+      // 자막 가져오기
+      const transcriptResponse = await fetch("/api/transcript", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ videoId }),
+      });
+
+      if (!transcriptResponse.ok) {
+        const data = await transcriptResponse.json();
+        throw new Error(data.error || "자막을 가져오는데 실패했습니다.");
+      }
+
+      const { transcript: transcriptItems } = await transcriptResponse.json();
 
       // 자막을 시간 정보와 함께 처리
       const segments: { start: number; end: number; text: string }[] = [];
@@ -97,27 +107,20 @@ export function YouTubeSummaryForm() {
 
       const transcript = segments
         .map((segment) => {
-          const startTime = new Date(segment.start * 1000)
-            .toISOString()
-            .substr(11, 8);
-          const endTime = new Date(segment.end * 1000)
-            .toISOString()
-            .substr(11, 8);
+          const startTime = new Date(segment.start).toISOString().substr(11, 8);
+          const endTime = new Date(segment.end).toISOString().substr(11, 8);
           return `[${startTime} ~ ${endTime}] ${segment.text}`;
         })
         .join("\n\n");
 
       // 요약 및 비디오 정보 가져오기
-      const summaryResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/summary`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url, transcript }),
-        }
-      );
+      const summaryResponse = await fetch("/api/summary", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url, transcript }),
+      });
 
       if (!summaryResponse.ok) {
         const data = await summaryResponse.json();
